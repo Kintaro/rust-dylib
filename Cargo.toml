@@ -4,9 +4,6 @@ name = "dylib"
 version = "0.0.1"
 authors = ["Simon Wollwage"]
 
-[dependencies]
-libc = "*"
-
 [lib]
 
 name = "dylib"
