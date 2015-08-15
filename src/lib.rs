@@ -123,7 +123,8 @@ impl DynamicLibrary {
 mod test {
     use super::*;
     use std::mem;
-    use path::Path;
+    use std::os::raw::c_double;
+    use std::path::Path;
 
     #[test]
     #[cfg_attr(any(windows, target_os = "android"), ignore)] // FIXME #8818, #10379
