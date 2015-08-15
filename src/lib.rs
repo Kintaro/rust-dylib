@@ -12,8 +12,6 @@
 //!
 //! A simple wrapper over the platform's dynamic library facilities
 
-extern crate libc;
-
 use std::env;
 use std::ffi::{CString, OsString};
 use std::mem;
@@ -137,7 +135,7 @@ mod test {
             Ok(libm) => libm
         };
 
-        let cosine: extern fn(libc::c_double) -> libc::c_double = unsafe {
+        let cosine: extern fn(c_double) -> c_double = unsafe {
             match libm.symbol("cos") {
                 Err(error) => panic!("Could not load function cos: {}", error),
                 Ok(cosine) => mem::transmute::<*mut u8, _>(cosine)
@@ -181,10 +179,10 @@ mod test {
           target_os = "openbsd"))]
 mod dl {
     use std::ffi::{CStr, OsStr, CString};
+    use std::os::raw::{c_char, c_int, c_void};
     use std::os::unix::ffi::OsStrExt;
     use std::str;
     use std::ptr;
-    use libc;
 
     pub fn open(filename: Option<&OsStr>) -> Result<*mut u8, String> {
         check_for_errors_in(|| {
@@ -197,7 +195,7 @@ mod dl {
         })
     }
 
-    const LAZY: libc::c_int = 1;
+    const LAZY: c_int = 1;
 
     unsafe fn open_external(filename: &OsStr) -> *mut u8 {
         let s = CString::new(filename.as_bytes()).unwrap(); //to_cstring().unwrap();
@@ -234,20 +232,20 @@ mod dl {
     }
 
     pub unsafe fn symbol(handle: *mut u8,
-                         symbol: *const libc::c_char) -> *mut u8 {
-        dlsym(handle as *mut libc::c_void, symbol) as *mut u8
+                         symbol: *const c_char) -> *mut u8 {
+        dlsym(handle as *mut c_void, symbol) as *mut u8
     }
     pub unsafe fn close(handle: *mut u8) {
-        dlclose(handle as *mut libc::c_void); ()
+        dlclose(handle as *mut c_void); ()
     }
 
     extern {
-        fn dlopen(filename: *const libc::c_char,
-                  flag: libc::c_int) -> *mut libc::c_void;
-        fn dlerror() -> *mut libc::c_char;
-        fn dlsym(handle: *mut libc::c_void,
-                 symbol: *const libc::c_char) -> *mut libc::c_void;
-        fn dlclose(handle: *mut libc::c_void) -> libc::c_int;
+        fn dlopen(filename: *const c_char,
+                  flag: c_int) -> *mut c_void;
+        fn dlerror() -> *mut c_char;
+        fn dlsym(handle: *mut c_void,
+                 symbol: *const c_char) -> *mut c_void;
+        fn dlclose(handle: *mut c_void) -> c_int;
     }
 }
 
@@ -278,7 +276,7 @@ mod dl {
             let result = SetThreadErrorMode(new_error_mode, &mut prev_error_mode);
             if result == 0 {
                 let err = os::errno();
-                if err as libc::c_int == ERROR_CALL_NOT_IMPLEMENTED {
+                if err as c_int == ERROR_CALL_NOT_IMPLEMENTED {
                     use_thread_mode = false;
                     // SetThreadErrorMode not found. use fallback solution:
                     // SetErrorMode() Note that SetErrorMode is process-wide so
@@ -300,7 +298,7 @@ mod dl {
                 let filename_str: Vec<_> =
                     filename.encode_wide().chain(Some(0).into_iter()).collect();
                 let result = unsafe {
-                    LoadLibraryW(filename_str.as_ptr() as *const libc::c_void)
+                    LoadLibraryW(filename_str.as_ptr() as *const c_void)
                 };
                 // beware: Vec/String may change errno during drop!
                 // so we get error here.
@@ -353,22 +351,22 @@ mod dl {
         }
     }
 
-    pub unsafe fn symbol(handle: *mut u8, symbol: *const libc::c_char) -> *mut u8 {
-        GetProcAddress(handle as *mut libc::c_void, symbol) as *mut u8
+    pub unsafe fn symbol(handle: *mut u8, symbol: *const c_char) -> *mut u8 {
+        GetProcAddress(handle as *mut c_void, symbol) as *mut u8
     }
     pub unsafe fn close(handle: *mut u8) {
-        FreeLibrary(handle as *mut libc::c_void); ()
+        FreeLibrary(handle as *mut c_void); ()
     }
 
     #[allow(non_snake_case)]
     extern "system" {
         fn SetLastError(error: libc::size_t);
-        fn LoadLibraryW(name: *const libc::c_void) -> *mut libc::c_void;
+        fn LoadLibraryW(name: *const c_void) -> *mut c_void;
         fn GetModuleHandleExW(dwFlags: libc::DWORD, name: *const u16,
-                              handle: *mut *mut libc::c_void) -> libc::BOOL;
-        fn GetProcAddress(handle: *mut libc::c_void,
-                          name: *const libc::c_char) -> *mut libc::c_void;
-        fn FreeLibrary(handle: *mut libc::c_void);
-        fn SetErrorMode(uMode: libc::c_uint) -> libc::c_uint;
+                              handle: *mut *mut c_void) -> libc::BOOL;
+        fn GetProcAddress(handle: *mut c_void,
+                          name: *const c_char) -> *mut c_void;
+        fn FreeLibrary(handle: *mut c_void);
+        fn SetErrorMode(uMode: c_uint) -> c_uint;
     }
 }
