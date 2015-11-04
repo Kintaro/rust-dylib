@@ -1,12 +1,12 @@
 [project]
 name = "dylib"
-version = "0.0.2"
+version = "0.1.0"
 authors = ["Simon Wollwage"]
 license = "BSD-3-Clause"
 description = "Standalone version of former dylib module"
 
 [dependencies]
-libc = "*"
+libc = "0.2"
 
 [lib]
 
