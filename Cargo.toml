@@ -1,8 +1,9 @@
-[package]
-
+[project]
 name = "dylib"
 version = "0.0.2"
 authors = ["Simon Wollwage"]
+license = "BSD-3-Clause"
+description = "Standalone version of former dylib module"
 
 [dependencies]
 libc = "*"
