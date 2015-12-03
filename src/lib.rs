@@ -109,7 +109,7 @@ impl DynamicLibrary {
 
         let raw_string = CString::new(symbol).unwrap();
         let maybe_symbol_value = dl::check_for_errors_in(|| {
-            dl::symbol(self.handle, raw_string.as_ptr())
+            dl::symbol(self.handle, raw_string.as_ptr() as *const _)
         });
 
         // The value must not be constructed if there is an error so
@@ -201,7 +201,7 @@ mod dl {
 
     unsafe fn open_external(filename: &OsStr) -> *mut u8 {
         let s = CString::new(filename.as_bytes()).unwrap(); //to_cstring().unwrap();
-        dlopen(s.as_ptr(), LAZY) as *mut u8
+        dlopen(s.as_ptr() as *const _, LAZY) as *mut u8
     }
 
     unsafe fn open_internal() -> *mut u8 {
