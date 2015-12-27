@@ -13,6 +13,9 @@
 //! A simple wrapper over the platform's dynamic library facilities
 
 extern crate libc;
+extern crate winapi;
+extern crate kernel32;
+extern crate errno;
 
 use std::env;
 use std::ffi::{CString, OsString};
@@ -125,7 +128,7 @@ impl DynamicLibrary {
 mod test {
     use super::*;
     use std::mem;
-    use path::Path;
+    use winapi;
 
     #[test]
     #[cfg_attr(any(windows, target_os = "android"), ignore)] // FIXME #8818, #10379
@@ -137,7 +140,7 @@ mod test {
             Ok(libm) => libm
         };
 
-        let cosine: extern fn(libc::c_double) -> libc::c_double = unsafe {
+        let cosine: extern fn(winapi::c_double) -> winapi::c_double = unsafe {
             match libm.symbol("cos") {
                 Err(error) => panic!("Could not load function cos: {}", error),
                 Ok(cosine) => mem::transmute::<*mut u8, _>(cosine)
@@ -252,10 +255,6 @@ mod dl {
 }
 
 #[cfg(target_os = "windows")]
-extern crate winapi;
-extern crate kernel32;
-extern crate errno;
-
 mod dl {
     use std::ffi::OsStr;
     use std::iter::Iterator;
