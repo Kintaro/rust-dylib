@@ -129,6 +129,7 @@ mod test {
     use super::*;
     use std::mem;
     use winapi;
+    use libc;
 
     #[test]
     #[cfg_attr(any(windows, target_os = "android"), ignore)] // FIXME #8818, #10379
@@ -200,7 +201,7 @@ mod dl {
         })
     }
 
-    const LAZY: winapi::c_int = 1;
+    const LAZY: libc::c_int = 1;
 
     unsafe fn open_external(filename: &OsStr) -> *mut u8 {
         let s = CString::new(filename.as_bytes()).unwrap(); //to_cstring().unwrap();
@@ -237,20 +238,20 @@ mod dl {
     }
 
     pub unsafe fn symbol(handle: *mut u8,
-                         symbol: *const winapi::c_char) -> *mut u8 {
-        dlsym(handle as *mut winapi::c_void, symbol) as *mut u8
+                         symbol: *const libc::c_char) -> *mut u8 {
+        dlsym(handle as *mut libc::c_void, symbol) as *mut u8
     }
     pub unsafe fn close(handle: *mut u8) {
-        dlclose(handle as *mut winapi::c_void); ()
+        dlclose(handle as *mut libc::c_void); ()
     }
 
     extern {
-        fn dlopen(filename: *const winapi::c_char,
-                  flag: winapi::c_int) -> *mut winapi::c_void;
-        fn dlerror() -> *mut winapi::c_char;
-        fn dlsym(handle: *mut winapi::c_void,
-                 symbol: *const winapi::c_char) -> *mut winapi::c_void;
-        fn dlclose(handle: *mut winapi::c_void) -> winapi::c_int;
+        fn dlopen(filename: *const libc::c_char,
+                  flag: libc::c_int) -> *mut libc::c_void;
+        fn dlerror() -> *mut libc::c_char;
+        fn dlsym(handle: *mut libc::c_void,
+                 symbol: *const libc::c_char) -> *mut libc::c_void;
+        fn dlclose(handle: *mut libc::c_void) -> libc::c_int;
     }
 }
 
@@ -272,6 +273,7 @@ mod dl {
     use std::vec::Vec;
     use kernel32::SetThreadErrorMode;
     use kernel32;
+    use libc;
 
     pub fn open(filename: Option<&OsStr>) -> Result<*mut u8, String> {
         // disable "dll load failed" error dialog.
@@ -306,7 +308,7 @@ mod dl {
                 let filename_str: Vec<_> =
                     filename.encode_wide().chain(Some(0).into_iter()).collect();
                 let result = unsafe {
-                    LoadLibraryW(filename_str.as_ptr() as *const winapi::c_void)
+                    LoadLibraryW(filename_str.as_ptr() as *const libc::c_void)
                 };
                 // beware: Vec/String may change errno during drop!
                 // so we get error here.
@@ -359,22 +361,22 @@ mod dl {
         }
     }
 
-    pub unsafe fn symbol(handle: *mut u8, symbol: *const winapi::c_char) -> *mut u8 {
-        GetProcAddress(handle as *mut winapi::c_void, symbol) as *mut u8
+    pub unsafe fn symbol(handle: *mut u8, symbol: *const libc::c_char) -> *mut u8 {
+        GetProcAddress(handle as *mut libc::c_void, symbol) as *mut u8
     }
     pub unsafe fn close(handle: *mut u8) {
-        FreeLibrary(handle as *mut winapi::c_void); ()
+        FreeLibrary(handle as *mut libc::c_void); ()
     }
 
     #[allow(non_snake_case)]
     extern "system" {
-        fn SetLastError(error: winapi::size_t);
-        fn LoadLibraryW(name: *const winapi::c_void) -> *mut winapi::c_void;
+        fn SetLastError(error: libc::size_t);
+        fn LoadLibraryW(name: *const libc::c_void) -> *mut libc::c_void;
         fn GetModuleHandleExW(dwFlags: minwindef::DWORD, name: *const u16,
-                              handle: *mut *mut winapi::c_void) -> minwindef::BOOL;
-        fn GetProcAddress(handle: *mut winapi::c_void,
-                          name: *const winapi::c_char) -> *mut winapi::c_void;
-        fn FreeLibrary(handle: *mut winapi::c_void);
-        fn SetErrorMode(uMode: winapi::c_uint) -> winapi::c_uint;
+                              handle: *mut *mut libc::c_void) -> minwindef::BOOL;
+        fn GetProcAddress(handle: *mut libc::c_void,
+                          name: *const libc::c_char) -> *mut libc::c_void;
+        fn FreeLibrary(handle: *mut libc::c_void);
+        fn SetErrorMode(uMode: libc::c_uint) -> libc::c_uint;
     }
 }
