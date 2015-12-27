@@ -9,6 +9,7 @@ description = "Standalone version of former dylib module"
 libc = "*"
 winapi = "*"
 kernel32-sys = "*"
+errno = "*"
 
 [lib]
 

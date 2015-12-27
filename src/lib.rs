@@ -254,14 +254,16 @@ mod dl {
 #[cfg(target_os = "windows")]
 extern crate winapi;
 extern crate kernel32;
+extern crate errno;
+
 mod dl {
     use std::ffi::OsStr;
     use std::iter::Iterator;
     use winapi::winerror::ERROR_CALL_NOT_IMPLEMENTED;
     use winapi;
     use winapi::minwindef;
+    use errno;
     use std::ops::FnOnce;
-    //use std::sys::os;
     use std::os::windows::prelude::*;
     use std::option::Option::{self, Some, None};
     use std::ptr;
@@ -270,6 +272,7 @@ mod dl {
     use std::string::String;
     use std::vec::Vec;
     use kernel32::SetThreadErrorMode;
+    use kernel32;
 
     pub fn open(filename: Option<&OsStr>) -> Result<*mut u8, String> {
         // disable "dll load failed" error dialog.
@@ -281,7 +284,7 @@ mod dl {
             // Windows >= 7 supports thread error mode.
             let result = SetThreadErrorMode(new_error_mode, &mut prev_error_mode);
             if result == 0 {
-                let err = os::errno();
+                let err = kernel32::GetLastError();
                 if err as winapi::DWORD == ERROR_CALL_NOT_IMPLEMENTED {
                     use_thread_mode = false;
                     // SetThreadErrorMode not found. use fallback solution:
@@ -309,8 +312,8 @@ mod dl {
                 // beware: Vec/String may change errno during drop!
                 // so we get error here.
                 if result == ptr::null_mut() {
-                    let errno = os::errno();
-                    Err(os::error_string(errno))
+                    let errno = errno::errno();
+                    Err(format!("{}", errno))
                 } else {
                     Ok(result as *mut u8)
                 }
@@ -321,8 +324,8 @@ mod dl {
                     GetModuleHandleExW(0 as minwindef::DWORD, ptr::null(), &mut handle)
                 };
                 if succeeded == minwindef::FALSE {
-                    let errno = os::errno();
-                    Err(os::error_string(errno))
+                    let errno = errno::errno();
+                    Err(format!("{}", errno))
                 } else {
                     Ok(handle as *mut u8)
                 }
@@ -348,7 +351,7 @@ mod dl {
 
             let result = f();
 
-            let error = os::errno();
+            let error = kernel32::GetLastError();
             if 0 == error {
                 Ok(result)
             } else {
