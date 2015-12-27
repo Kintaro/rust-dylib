@@ -7,6 +7,9 @@ description = "Standalone version of former dylib module"
 
 [dependencies]
 libc = "*"
+winapi = "*"
+kernel32-sys = "*"
+errno = "*"
 
 [lib]
 

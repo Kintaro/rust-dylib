@@ -13,6 +13,9 @@
 //! A simple wrapper over the platform's dynamic library facilities
 
 extern crate libc;
+extern crate winapi;
+extern crate kernel32;
+extern crate errno;
 
 use std::env;
 use std::ffi::{CString, OsString};
@@ -125,7 +128,8 @@ impl DynamicLibrary {
 mod test {
     use super::*;
     use std::mem;
-    use path::Path;
+    use winapi;
+    use libc;
 
     #[test]
     #[cfg_attr(any(windows, target_os = "android"), ignore)] // FIXME #8818, #10379
@@ -137,7 +141,7 @@ mod test {
             Ok(libm) => libm
         };
 
-        let cosine: extern fn(libc::c_double) -> libc::c_double = unsafe {
+        let cosine: extern fn(winapi::c_double) -> winapi::c_double = unsafe {
             match libm.symbol("cos") {
                 Err(error) => panic!("Could not load function cos: {}", error),
                 Ok(cosine) => mem::transmute::<*mut u8, _>(cosine)
@@ -255,9 +259,11 @@ mod dl {
 mod dl {
     use std::ffi::OsStr;
     use std::iter::Iterator;
-    use std::libc::consts::os::extra::ERROR_CALL_NOT_IMPLEMENTED;
+    use winapi::winerror::ERROR_CALL_NOT_IMPLEMENTED;
+    use winapi;
+    use winapi::minwindef;
+    use errno;
     use std::ops::FnOnce;
-    use std::sys::os;
     use std::os::windows::prelude::*;
     use std::option::Option::{self, Some, None};
     use std::ptr;
@@ -265,7 +271,9 @@ mod dl {
     use std::result::Result::{Ok, Err};
     use std::string::String;
     use std::vec::Vec;
-    use std::sys::c::compat::kernel32::SetThreadErrorMode;
+    use kernel32::SetThreadErrorMode;
+    use kernel32;
+    use libc;
 
     pub fn open(filename: Option<&OsStr>) -> Result<*mut u8, String> {
         // disable "dll load failed" error dialog.
@@ -277,8 +285,8 @@ mod dl {
             // Windows >= 7 supports thread error mode.
             let result = SetThreadErrorMode(new_error_mode, &mut prev_error_mode);
             if result == 0 {
-                let err = os::errno();
-                if err as libc::c_int == ERROR_CALL_NOT_IMPLEMENTED {
+                let err = kernel32::GetLastError();
+                if err as winapi::DWORD == ERROR_CALL_NOT_IMPLEMENTED {
                     use_thread_mode = false;
                     // SetThreadErrorMode not found. use fallback solution:
                     // SetErrorMode() Note that SetErrorMode is process-wide so
@@ -305,8 +313,8 @@ mod dl {
                 // beware: Vec/String may change errno during drop!
                 // so we get error here.
                 if result == ptr::null_mut() {
-                    let errno = os::errno();
-                    Err(os::error_string(errno))
+                    let errno = errno::errno();
+                    Err(format!("{}", errno))
                 } else {
                     Ok(result as *mut u8)
                 }
@@ -314,11 +322,11 @@ mod dl {
             None => {
                 let mut handle = ptr::null_mut();
                 let succeeded = unsafe {
-                    GetModuleHandleExW(0 as libc::DWORD, ptr::null(), &mut handle)
+                    GetModuleHandleExW(0 as minwindef::DWORD, ptr::null(), &mut handle)
                 };
-                if succeeded == libc::FALSE {
-                    let errno = os::errno();
-                    Err(os::error_string(errno))
+                if succeeded == minwindef::FALSE {
+                    let errno = errno::errno();
+                    Err(format!("{}", errno))
                 } else {
                     Ok(handle as *mut u8)
                 }
@@ -344,7 +352,7 @@ mod dl {
 
             let result = f();
 
-            let error = os::errno();
+            let error = kernel32::GetLastError();
             if 0 == error {
                 Ok(result)
             } else {
@@ -364,8 +372,8 @@ mod dl {
     extern "system" {
         fn SetLastError(error: libc::size_t);
         fn LoadLibraryW(name: *const libc::c_void) -> *mut libc::c_void;
-        fn GetModuleHandleExW(dwFlags: libc::DWORD, name: *const u16,
-                              handle: *mut *mut libc::c_void) -> libc::BOOL;
+        fn GetModuleHandleExW(dwFlags: minwindef::DWORD, name: *const u16,
+                              handle: *mut *mut libc::c_void) -> minwindef::BOOL;
         fn GetProcAddress(handle: *mut libc::c_void,
                           name: *const libc::c_char) -> *mut libc::c_void;
         fn FreeLibrary(handle: *mut libc::c_void);
