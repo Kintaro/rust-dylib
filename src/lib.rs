@@ -123,9 +123,10 @@ impl DynamicLibrary {
 
 #[cfg(all(test, not(target_os = "ios")))]
 mod test {
+    use libc;
     use super::*;
     use std::mem;
-    use path::Path;
+    use std::path::Path;
 
     #[test]
     #[cfg_attr(any(windows, target_os = "android"), ignore)] // FIXME #8818, #10379
